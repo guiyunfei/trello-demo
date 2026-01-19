@@ -8,7 +8,7 @@
 
     <!-- Tasks Container -->
     <div
-      @dragover.prevent
+      @dragover.prevent="handleDragOver"
       @drop="handleDrop"
       class="p-4 min-h-96 bg-gray-50"
     >
@@ -50,20 +50,33 @@ const props = defineProps({
 
 const emit = defineEmits(['update-task', 'delete-task', 'drop'])
 
-const draggedTask = ref(null)
+const handleDragOver = (e) => {
+  e.preventDefault()
+  e.dataTransfer.dropEffect = 'move'
+}
 
-const handleDragStart = (task) => {
-  draggedTask.value = task
+const handleDragStart = (task, e) => {
+  e.dataTransfer.effectAllowed = 'move'
+  e.dataTransfer.setData('application/json', JSON.stringify(task))
+  console.log('Drag started:', task)
 }
 
 const handleDragEnd = () => {
-  draggedTask.value = null
+  console.log('Drag ended')
 }
 
-const handleDrop = () => {
-  if (draggedTask.value) {
-    emit('drop', draggedTask.value, props.status)
-    draggedTask.value = null
+const handleDrop = (e) => {
+  e.preventDefault()
+  e.stopPropagation()
+  try {
+    const taskData = e.dataTransfer.getData('application/json')
+    if (taskData) {
+      const draggedTask = JSON.parse(taskData)
+      console.log('Drop event triggered, draggedTask:', draggedTask, 'newStatus:', props.status.value)
+      emit('drop', draggedTask, props.status.value)
+    }
+  } catch (err) {
+    console.error('Drop error:', err)
   }
 }
 </script>

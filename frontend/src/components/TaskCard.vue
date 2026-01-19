@@ -1,7 +1,7 @@
 <template>
   <div
     draggable="true"
-    @dragstart="$emit('dragstart', task)"
+    @dragstart="handleDragStart"
     @dragend="$emit('dragend')"
     class="bg-white rounded-lg p-4 shadow hover:shadow-md transition-shadow cursor-move border-l-4 border-purple-500 hover:border-purple-600"
   >
@@ -109,5 +109,9 @@ const formatDate = (dateString) => {
     hour: '2-digit',
     minute: '2-digit',
   })
+}
+
+const handleDragStart = (e) => {
+  emit('dragstart', props.task, e)
 }
 </script>
