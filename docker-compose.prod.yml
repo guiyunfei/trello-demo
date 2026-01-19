@@ -1,0 +1,63 @@
+services:
+  mysql:
+    image: mysql:8.0.35
+    container_name: kanban-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: kanban
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/src/main/resources/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      - ./backend/src/main/resources/db/data.sql:/docker-entrypoint-initdb.d/02-data.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
+      interval: 10s
+    networks:
+      - kanban-network
+
+  backend:
+    image: openjdk:17-jdk-slim
+    container_name: kanban-backend
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/kanban?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root123456
+    volumes:
+      - ./backend/target/kanban-backend-1.0.0.jar:/app/app.jar
+    working_dir: /app
+    command: java -jar app.jar
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - kanban-network
+    restart: unless-stopped
+
+  frontend:
+    image: node:16-slim
+    container_name: kanban-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+    working_dir: /app
+    command: sh -c "npm install && npm run build && npx serve -s dist -l 5173"
+    depends_on:
+      - backend
+    networks:
+      - kanban-network
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+
+networks:
+  kanban-network:
+    driver: bridge
